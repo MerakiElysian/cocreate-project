@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --page-bg-start: #eef1fb;
+  --page-bg-end: #fbfbff;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, var(--page-bg-start) 0%, var(--page-bg-end) 60%);
+  color: #111827;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #4f5bff, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
