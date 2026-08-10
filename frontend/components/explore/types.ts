@@ -20,7 +20,7 @@ export interface Post {
   /** stand-in for a cover photo until real post images exist */
   coverGradient: string;
   title: string;
-  status: "Recruiting" | "In Progress" | "Closed";
+  status: "Recruiting" | "In Progress" | "Closed" | "Hiring" ;
   authorName: string;
   postedAgo: string;
   description: string;

@@ -1,45 +1,120 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PostCard from "./PostCard";
 import { Post } from "./types";
 
-const ROWS = 2;
-// The single source of truth for every card's height. PostCard receives this
-// exact number as a prop and sizes itself in pixels from it — nothing here
-// is responsive-class-driven, so this constant IS the real rendered height,
-// not an estimate. That's what guarantees the grid can't overflow vertically.
+// Fixed per-card height on desktop. PostCard receives this exact number as a
+// prop and sizes itself in pixels from it — nothing here is
+// responsive-class-driven, so this constant IS the real rendered height, not
+// an estimate. That's what lets us safely divide available space by it to
+// get a row count.
 const CARD_HEIGHT = 300;
+const MOBILE_CARD_HEIGHT = 220;
 const GAP = 20;
+const MOBILE_GAP = 16;
 
 // Clamp so an extreme aspectRatio in the data can never produce a card wide
 // or narrow enough to look broken or to throw off the row-balancing math.
 const MIN_ASPECT = 0.55;
 const MAX_ASPECT = 1.8;
 
+// Below this, we drop the horizontal masonry entirely and render one
+// full-width column that scrolls vertically like a normal feed — a
+// horizontal-only layout doesn't work once there isn't room for it.
+const MOBILE_BREAKPOINT = 768;
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    setIsMobile(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return isMobile;
+}
+
 export default function PostGrid({ posts }: { posts: Post[] }) {
+  const isMobile = useIsMobile();
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Translate any vertical wheel/trackpad input into horizontal scroll, and
-  // always prevent the default so this section never bubbles a vertical
-  // scroll up to the page — it should ONLY ever scroll horizontally.
+  // --- Row count follows the section's real available height -----------
+  // Measured (not assumed) via ResizeObserver on the wrapper that actually
+  // fills the grid section, so a shorter viewport (small laptop, browser
+  // zoom, a taller navbar) naturally gets fewer rows instead of clipping or
+  // leaving dead space, and a taller viewport gets more.
+  const [rowCount, setRowCount] = useState(3);
+
   useEffect(() => {
+    if (isMobile) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const compute = () => {
+      const available = wrapper.clientHeight;
+      const count = Math.max(1, Math.floor((available + GAP) / (CARD_HEIGHT + GAP)));
+      setRowCount(count);
+    };
+
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, [isMobile]);
+
+  // --- Desktop: eased, speed-limited wheel → horizontal scroll ---------
+  // Raw deltaY per wheel tick varies wildly by device (a mouse notch can be
+  // 100+, a trackpad much less), which is what made `scrollLeft += deltaY`
+  // feel jumpy. Instead we scale the input down (SPEED) and drive scrollLeft
+  // toward a target with an eased rAF loop (EASE) for consistent, smooth
+  // motion regardless of input device.
+  const SPEED = 0.6;
+  const EASE = 0.14;
+  const targetScroll = useRef(0);
+
+  useEffect(() => {
+    if (isMobile) return; // native vertical touch scroll handles mobile
     const el = scrollRef.current;
     if (!el) return;
+
+    targetScroll.current = el.scrollLeft;
+    let raf = 0;
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      el.scrollLeft += Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      const raw = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      const max = el.scrollWidth - el.clientWidth;
+      targetScroll.current = Math.min(max, Math.max(0, targetScroll.current + raw * SPEED));
     };
+
+    const tick = () => {
+      const el2 = scrollRef.current;
+      if (el2) {
+        const delta = targetScroll.current - el2.scrollLeft;
+        el2.scrollLeft += Math.abs(delta) < 0.5 ? delta : delta * EASE;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      cancelAnimationFrame(raf);
+    };
+  }, [isMobile]);
 
   // Greedily place each post into whichever row currently has the least
   // total width, so all rows fill up roughly evenly as you scroll right —
-  // this is the "masonry rotated 90°" packing. Every width is computed from
-  // the same fixed CARD_HEIGHT that PostCard will actually render at.
+  // this is the "masonry rotated 90°" packing, now against `rowCount` rows
+  // instead of a fixed number.
   const rows = useMemo(() => {
-    const buckets: { items: Post[]; width: number }[] = Array.from({ length: ROWS }, () => ({
+    if (isMobile) return null;
+    const buckets: { items: Post[]; width: number }[] = Array.from({ length: rowCount }, () => ({
       items: [],
       width: 0,
     }));
@@ -53,27 +128,47 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
     });
 
     return buckets.map((b) => b.items);
-  }, [posts]);
+  }, [posts, isMobile, rowCount]);
 
-  const gridHeight = ROWS * CARD_HEIGHT + (ROWS - 1) * GAP;
+  // --- Mobile: single full-width column, native vertical scroll --------
+  if (isMobile) {
+    return (
+      <div
+        ref={scrollRef}
+        className="h-full w-full overflow-x-hidden overflow-y-auto overscroll-contain scroll-smooth px-4 pb-6 pt-4 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none" }}
+      >
+        <div className="flex flex-col" style={{ gap: MOBILE_GAP }}>
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} height={MOBILE_CARD_HEIGHT} fullWidth />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Desktop: horizontal masonry, rowCount rows tall --------------------
+  const gridHeight = rowCount * CARD_HEIGHT + (rowCount - 1) * GAP;
 
   return (
-    <div
-      ref={scrollRef}
-      // Explicit fixed height (not h-full / min-h-*) so this box is exactly
-      // as tall as its rows and can never be pushed taller by content — the
-      // browser has nothing to vertically scroll even if it wanted to.
-      style={{ height: gridHeight }}
-      className="w-full overflow-x-auto overflow-y-hidden scroll-smooth px-6 [&::-webkit-scrollbar]:hidden lg:px-12"
-    >
-      <div className="flex h-full w-max flex-col gap-5">
-        {rows.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex gap-5" style={{ height: CARD_HEIGHT }}>
-            {row.map((post) => (
-              <PostCard key={post.id} post={post} height={CARD_HEIGHT} />
-            ))}
-          </div>
-        ))}
+    // Fills the grid section completely — this is what ResizeObserver
+    // measures. The scrollable inner box is vertically centered inside it
+    // so any leftover fraction-of-a-row space is distributed evenly.
+    <div ref={wrapperRef} className="flex h-full w-full items-center overflow-hidden">
+      <div
+        ref={scrollRef}
+        style={{ height: gridHeight }}
+        className="w-full overflow-x-auto overflow-y-hidden px-6 [&::-webkit-scrollbar]:hidden lg:px-12"
+      >
+        <div className="flex h-full w-max flex-col gap-5">
+          {rows!.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex gap-5" style={{ height: CARD_HEIGHT }}>
+              {row.map((post) => (
+                <PostCard key={post.id} post={post} height={CARD_HEIGHT} />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
