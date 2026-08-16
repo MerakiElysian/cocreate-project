@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-    binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -9,49 +9,109 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String    @unique
-  password      String
-  avatarUrl     String?
-  bio           String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatarUrl String?
+  bio       String?
+  skills    String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  ownedProjects Project[] @relation("ProjectOwner")
+  ownedProjects  Project[]             @relation("ProjectOwner")
   collaborations ProjectCollaborator[]
-  refreshTokens RefreshToken[]
+  refreshTokens  RefreshToken[]
+  savedRoles     SavedRole[]
+  applications   Application[]
 }
 
 model Project {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   title         String
   description   String
   coverImageUrl String?
+  category      String?
+  workType      String   @default("Remote")
+  tags          String[]
   ownerId       String
-  owner         User      @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  owner         User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
   collaborators ProjectCollaborator[]
-  status        ProjectStatus @default(ACTIVE)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  roles         Role[]
+
+  status    ProjectStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Role {
+  id           String @id @default(uuid())
+  projectId    String
+  title        String
+  contractType String
+  compensation String
+  totalSpots   Int    @default(1)
+  filledSpots  Int    @default(0)
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applications Application[]
+  savedBy      SavedRole[]
+
+  createdAt DateTime @default(now())
+}
+
+model Application {
+  id           String            @id @default(uuid())
+  roleId       String
+  applicantId  String
+  coverNote    String?
+  portfolioUrl String?
+  counterOffer String?
+  counterStart DateTime?
+  status       ApplicationStatus @default(PENDING)
+
+  role      Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roleId, applicantId])
+}
+
+model SavedRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
 }
 
 model ProjectCollaborator {
-  id         String   @id @default(uuid())
-  projectId  String
-  userId     String
-  role       CollaboratorRole @default(EDITOR)
-  project    Project  @relation(fields: [projectId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
+  id        String           @id @default(uuid())
+  projectId String
+  userId    String
+  role      CollaboratorRole @default(EDITOR)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  token  String @unique
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
@@ -66,4 +126,11 @@ enum CollaboratorRole {
   OWNER
   EDITOR
   VIEWER
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
 }

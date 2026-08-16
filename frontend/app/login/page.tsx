@@ -37,7 +37,7 @@ export default function LoginPage() {
       }
       dispatch(loginSuccess({ user: json.data.user, accessToken: json.data.accessToken }));
       localStorage.setItem("refreshToken", json.data.refreshToken);
-      router.push("/");
+      router.push("/explore");
     } catch (err) {
       dispatch(loginFailure());
       setServerError(err instanceof Error ? err.message : "Something went wrong");
