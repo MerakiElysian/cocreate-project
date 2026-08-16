@@ -55,7 +55,7 @@ export default function Hero() {
 
         <div className="mb-16 flex flex-col justify-center gap-4 sm:flex-row">
           <Link
-            href="/login"
+            href="/explore"
             className="transform rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-blue-700 hover:shadow-xl"
           >
             Start Creating Now
