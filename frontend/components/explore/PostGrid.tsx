@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PostCard from "./PostCard";
 import { Post } from "./types";
+import { getAspectRatio } from "./PostStyle";
 
 // Fixed per-card height on desktop. PostCard receives this exact number as a
 // prop and sizes itself in pixels from it — nothing here is
@@ -10,14 +11,8 @@ import { Post } from "./types";
 // an estimate. That's what lets us safely divide available space by it to
 // get a row count.
 const CARD_HEIGHT = 300;
-const MOBILE_CARD_HEIGHT = 220;
 const GAP = 20;
 const MOBILE_GAP = 16;
-
-// Clamp so an extreme aspectRatio in the data can never produce a card wide
-// or narrow enough to look broken or to throw off the row-balancing math.
-const MIN_ASPECT = 0.55;
-const MAX_ASPECT = 1.8;
 
 // Below this, we drop the horizontal masonry entirely and render one
 // full-width column that scrolls vertically like a normal feed — a
@@ -34,6 +29,11 @@ function useIsMobile() {
     return () => mql.removeEventListener("change", onChange);
   }, []);
   return isMobile;
+}
+
+interface GridItem {
+  post: Post;
+  gridIndex: number;
 }
 
 export default function PostGrid({ posts }: { posts: Post[] }) {
@@ -111,19 +111,23 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
   // Greedily place each post into whichever row currently has the least
   // total width, so all rows fill up roughly evenly as you scroll right —
   // this is the "masonry rotated 90°" packing, now against `rowCount` rows
-  // instead of a fixed number.
+  // instead of a fixed number. Each post's aspect ratio (and therefore its
+  // width) is derived from its own content via getAspectRatio, and its
+  // gridIndex (used for cover-gradient/avatar-color styling) is its
+  // original position in the incoming `posts` array, so styling stays
+  // stable even as rows are rebalanced.
   const rows = useMemo(() => {
     if (isMobile) return null;
-    const buckets: { items: Post[]; width: number }[] = Array.from({ length: rowCount }, () => ({
-      items: [],
-      width: 0,
-    }));
+    const buckets: { items: GridItem[]; width: number }[] = Array.from(
+      { length: rowCount },
+      () => ({ items: [], width: 0 })
+    );
 
-    posts.forEach((post) => {
-      const aspect = Math.min(MAX_ASPECT, Math.max(MIN_ASPECT, post.aspectRatio));
+    posts.forEach((post, gridIndex) => {
+      const aspect = getAspectRatio(post, "desktop");
       const width = CARD_HEIGHT * aspect;
       const target = buckets.reduce((min, b) => (b.width < min.width ? b : min), buckets[0]);
-      target.items.push({ ...post, aspectRatio: aspect });
+      target.items.push({ post, gridIndex });
       target.width += width + GAP;
     });
 
@@ -139,8 +143,8 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
         style={{ scrollbarWidth: "none" }}
       >
         <div className="flex flex-col" style={{ gap: MOBILE_GAP }}>
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} height={MOBILE_CARD_HEIGHT} fullWidth />
+          {posts.map((post, gridIndex) => (
+            <PostCard key={post.id} post={post} height={CARD_HEIGHT} gridIndex={gridIndex} fullWidth />
           ))}
         </div>
       </div>
@@ -163,8 +167,8 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
         <div className="flex h-full w-max flex-col gap-5">
           {rows!.map((row, rowIndex) => (
             <div key={rowIndex} className="flex gap-5" style={{ height: CARD_HEIGHT }}>
-              {row.map((post) => (
-                <PostCard key={post.id} post={post} height={CARD_HEIGHT} />
+              {row.map(({ post, gridIndex }) => (
+                <PostCard key={post.id} post={post} height={CARD_HEIGHT} gridIndex={gridIndex} />
               ))}
             </div>
           ))}

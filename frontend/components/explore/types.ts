@@ -9,18 +9,12 @@ export interface Role {
 
 export interface TeamMember {
   initials: string;
-  color: string; // tailwind gradient classes
 }
 
 export interface Post {
   id: string;
-  /** width-to-height ratio, like a photo's aspect ratio — drives card
-   * width against the row's fixed height. ~0.65 = narrow, ~1.1 = wide. */
-  aspectRatio: number;
-  /** stand-in for a cover photo until real post images exist */
-  coverGradient: string;
   title: string;
-  status: "Recruiting" | "In Progress" | "Closed" | "Hiring" ;
+  status: "Recruiting" | "In Progress" | "Closed" | "Hiring";
   authorName: string;
   postedAgo: string;
   description: string;
