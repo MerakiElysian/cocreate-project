@@ -14,12 +14,12 @@ export default function BottomDock() {
       className="fixed inset-x-0 z-50 flex justify-center px-4"
       style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      <div className="flex items-center gap-1 rounded-full border border-gray-100 bg-white/90 px-2 py-1.5 shadow-xl backdrop-blur-md sm:gap-2 sm:px-3 sm:py-2">
+      <div className="flex items-center gap-1 rounded-full border border-gray-100 bg-white/90 px-2 py-1.5 shadow-xl backdrop-blur-md transition-colors sm:gap-2 sm:px-3 sm:py-2 dark:border-gray-800 dark:bg-gray-900/90">
         {dockButtons.map(({ icon: Icon, label }) => (
           <button
             key={label}
             aria-label={label}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:h-11 sm:w-11"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:h-11 sm:w-11 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
           >
             <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>

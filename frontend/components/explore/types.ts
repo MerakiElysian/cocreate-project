@@ -5,22 +5,23 @@ export interface Role {
   employment: string; // e.g. "Full-time" | "Part-time"
   filled: number;
   total: number;
+  /** Shown only inside the role's own expanded detail — never on the card. */
+  description: string;
+  requirements: string[];
 }
 
 export interface TeamMember {
   initials: string;
-  color: string; // tailwind gradient classes
+  name: string;
+  role: string; // e.g. "Co-founder & Design"
 }
 
 export interface Post {
   id: string;
-  /** width-to-height ratio, like a photo's aspect ratio — drives card
-   * width against the row's fixed height. ~0.65 = narrow, ~1.1 = wide. */
-  aspectRatio: number;
-  /** stand-in for a cover photo until real post images exist */
-  coverGradient: string;
   title: string;
-  status: "Recruiting" | "In Progress" | "Closed" | "Hiring" ;
+  status: "Recruiting" | "In Progress" | "Closed" | "Hiring";
+  companyName: string;
+  category: string;
   authorName: string;
   postedAgo: string;
   description: string;
