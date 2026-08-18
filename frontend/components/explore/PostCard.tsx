@@ -1,13 +1,9 @@
-import { Bookmark, MapPin, Clock } from "lucide-react";
-import { Post } from "./types";
-import { getAspectRatio, getCoverGradient, getMemberColor } from "./PostStyle";
+"use client";
 
-const statusStyles: Record<Post["status"], string> = {
-  Recruiting: "bg-blue-500/90 text-white",
-  "In Progress": "bg-purple-500/90 text-white",
-  Closed: "bg-gray-600/90 text-white",
-  Hiring: "bg-green-500/90 text-white",
-};
+import { useState } from "react";
+import { Bookmark, MapPin, Users, Briefcase, ArrowUpRight } from "lucide-react";
+import { Post } from "./types";
+import { getAspectRatio, getCoverGradient, getMemberColor, getInitials } from "./PostStyle";
 
 interface PostCardProps {
   post: Post;
@@ -25,23 +21,6 @@ interface PostCardProps {
 }
 
 const MAX_TAGS = 2;
-const MAX_ROLES = 2;
-
-function RoleDots({ filled, total }: { filled: number; total: number }) {
-  return (
-    <span className="flex flex-shrink-0 items-center gap-0.5">
-      {Array.from({ length: total }).map((_, i) => (
-        <span
-          key={i}
-          className={`h-1.5 w-1.5 rounded-[2px] ${i < filled ? "bg-white" : "bg-white/25"}`}
-        />
-      ))}
-      <span className="ml-1 text-[9px] font-semibold text-white/80">
-        {filled}/{total}
-      </span>
-    </span>
-  );
-}
 
 export default function PostCard({
   post,
@@ -50,13 +29,18 @@ export default function PostCard({
   fullWidth = false,
   onOpen,
 }: PostCardProps) {
+  // Local, ephemeral demo state — a real build would lift this to a
+  // saved-posts store keyed by post.id.
+  const [saved, setSaved] = useState(false);
+
   const visibleTags = post.tags.slice(0, MAX_TAGS);
   const extraTags = post.tags.length - visibleTags.length;
 
-  const visibleRoles = post.roles.slice(0, MAX_ROLES);
-  const extraRoles = post.roles.length - visibleRoles.length;
+  const teamSize = post.team.length + (post.extraMembers ?? 0);
+  const openRoles = post.roles.reduce((sum, role) => sum + Math.max(role.total - role.filled, 0), 0);
 
   const coverGradient = getCoverGradient(gridIndex);
+  const logoInitials = getInitials(post.companyName);
 
   // Desktop: ratio >= 1 (square-to-wide), height fixed, width derived.
   // Mobile: ratio <= 1 (square-to-tall), width fixed (100%), height derived
@@ -85,36 +69,48 @@ export default function PostCard({
         fullWidth ? "w-full" : ""
       }`}
     >
-      {/* bookmark — stops propagation so it doesn't also open the modal */}
-      <button
-        aria-label="Bookmark"
-        onClick={(e) => e.stopPropagation()}
-        className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 sm:right-3 sm:top-3 sm:h-8 sm:w-8"
-      >
-        <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      </button>
-
-      {/* status badge */}
-      <span
-        className={`absolute left-2.5 top-2.5 z-10 rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-sm sm:left-3 sm:top-3 sm:px-3 sm:text-xs ${statusStyles[post.status]}`}
-      >
-        {post.status}
-      </span>
+      {/* top row — logo (left) + category tag (right). Both translucent
+         chips that sit directly on the cover gradient, matching each
+         other's weight so neither reads as more "clickable" than the other. */}
+      <div className="absolute inset-x-2.5 top-2.5 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+        <span
+          aria-hidden
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/15 text-[11px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm sm:h-9 sm:w-9 sm:text-xs"
+        >
+          {logoInitials}
+        </span>
+        <span className="max-w-[55%] truncate rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm sm:text-[11px]">
+          {post.category}
+        </span>
+      </div>
 
       {/* caption overlay — sizes to its content and grows up from the
          bottom, so it's never taller or shorter than what it holds. The
-         gradient never fades past black/70 so card-colored background
+         gradient never fades past black/95 so card-colored background
          can't show through behind the title on content-heavy cards. This
          overlay is intentionally theme-independent: cards are colored
          cover tiles with white text either way, so light/dark mode only
          changes the chrome around them (navbar, page bg, dock). */}
       <div className="absolute inset-x-0 bottom-0 flex max-h-full flex-col justify-end gap-2 bg-gradient-to-t from-black/95 via-black/85 to-black/70 p-3.5 sm:p-4">
-        {/* title + meta */}
+        {/* title + a quiet "open" affordance that only animates in on
+           hover/focus — this is the whole card's click hint now that the
+           old Details button is gone. */}
         <div>
-          <h3 className="truncate text-[15px] font-bold leading-snug text-white sm:text-base">
-            {post.title}
-          </h3>
-          <p className="mt-0.5 truncate text-[11px] text-white/60 sm:text-xs">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate text-[15px] font-bold leading-snug text-white sm:text-base">
+              {post.title}
+            </h3>
+            <span
+              aria-hidden
+              className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white/0 text-white/0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:bg-white/15 group-hover:text-white group-focus-visible:bg-white/15 group-focus-visible:text-white"
+            >
+              <ArrowUpRight className="h-3 w-3" />
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-[11px] font-medium text-white/70 sm:text-xs">
+            by {post.companyName}
+          </p>
+          <p className="truncate text-[10px] text-white/45 sm:text-[11px]">
             {post.authorName} · {post.postedAgo}
           </p>
         </div>
@@ -143,74 +139,70 @@ export default function PostCard({
           </div>
         )}
 
-        {/* open roles */}
-        {visibleRoles.length > 0 && (
-          <div className="rounded-lg bg-white/[0.06] px-2.5 py-2">
-            <div className="flex flex-col gap-1.5">
-              {visibleRoles.map((role) => (
-                <div key={role.title} className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-[11px] font-medium text-white sm:text-xs">
-                    {role.title}
-                  </span>
-                  <RoleDots filled={role.filled} total={role.total} />
-                </div>
+        {/* team + open roles + location — project-level facts only.
+           Per-role pay/schedule detail now lives exclusively inside each
+           role's own expanded card in the detail view. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-white/60 sm:text-[11px]">
+          <span className="flex items-center gap-2">
+            <span className="flex -space-x-1.5">
+              {post.team.slice(0, 3).map((member, i) => (
+                <span
+                  key={i}
+                  className={`flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${getMemberColor(
+                    gridIndex,
+                    i
+                  )} text-[8px] font-bold text-white ring-1 ring-black/40 sm:h-6 sm:w-6 sm:text-[9px]`}
+                >
+                  {member.initials}
+                </span>
               ))}
-            </div>
-            {extraRoles > 0 && (
-              <p className="mt-1 text-[10px] text-white/50">+{extraRoles} more roles</p>
-            )}
-          </div>
-        )}
-
-        {/* avatars + location/employment */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex -space-x-1.5">
-            {post.team.map((member, i) => (
-              <span
-                key={i}
-                className={`flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${getMemberColor(
-                  gridIndex,
-                  i
-                )} text-[8px] font-bold text-white ring-1 ring-black/40 sm:h-6 sm:w-6 sm:text-[9px]`}
-              >
-                {member.initials}
-              </span>
-            ))}
-            {!!post.extraMembers && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-[8px] font-semibold text-white/80 ring-1 ring-black/40 sm:h-6 sm:w-6 sm:text-[9px]">
-                +{post.extraMembers}
-              </span>
-            )}
-          </div>
-
-          <div className="flex min-w-0 items-center gap-2 text-[10px] text-white/60 sm:text-[11px]">
-            <span className="flex items-center gap-0.5 truncate">
-              <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{post.location}</span>
             </span>
-            <span className="flex flex-shrink-0 items-center gap-0.5">
-              <Clock className="h-3 w-3" />
-              {post.employment}
+            <span className="flex items-center gap-1">
+              <Users className="h-3 w-3 flex-shrink-0" />
+              {teamSize}
             </span>
-          </div>
+          </span>
+          {openRoles > 0 && (
+            <span className="flex items-center gap-1">
+              <Briefcase className="h-3 w-3 flex-shrink-0" />
+              {openRoles} open
+            </span>
+          )}
+          <span className="flex min-w-0 items-center gap-1 truncate">
+            <MapPin className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{post.location}</span>
+          </span>
         </div>
 
-        {/* actions */}
-        <div className="flex items-center gap-1.5">
+        {/* actions — Save (fills solid when active) and a short, iconed
+           Apply that opens the detail view, where role selection happens. */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            aria-label={saved ? "Remove from saved" : "Save post"}
+            aria-pressed={saved}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSaved((s) => !s);
+            }}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors sm:px-3.5 sm:text-xs ${
+              saved
+                ? "bg-white text-gray-900"
+                : "bg-white/10 text-white ring-1 ring-white/25 hover:bg-white/20"
+            }`}
+          >
+            <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-gray-900" : ""}`} />
+            {saved ? "Saved" : "Save"}
+          </button>
+
           <button
             onClick={(e) => {
               e.stopPropagation();
               onOpen?.();
             }}
-            className="flex-1 rounded-full border border-white/25 bg-white/5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/15 sm:text-xs"
+            className="group/apply flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-[11px] font-bold text-gray-900 shadow-md transition-all hover:bg-gray-100 hover:shadow-lg sm:text-xs"
           >
-            Details
-          </button>
-          <button
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 rounded-full bg-white py-1.5 text-[11px] font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:text-xs"
-          >
-            Apply →
+            Apply
+            <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover/apply:translate-x-0.5 group-hover/apply:-translate-y-0.5" />
           </button>
         </div>
       </div>

@@ -5,16 +5,23 @@ export interface Role {
   employment: string; // e.g. "Full-time" | "Part-time"
   filled: number;
   total: number;
+  /** Shown only inside the role's own expanded detail — never on the card. */
+  description: string;
+  requirements: string[];
 }
 
 export interface TeamMember {
   initials: string;
+  name: string;
+  role: string; // e.g. "Co-founder & Design"
 }
 
 export interface Post {
   id: string;
   title: string;
   status: "Recruiting" | "In Progress" | "Closed" | "Hiring";
+  companyName: string;
+  category: string;
   authorName: string;
   postedAgo: string;
   description: string;

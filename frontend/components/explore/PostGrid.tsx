@@ -45,7 +45,15 @@ interface GridItem {
   gridIndex: number;
 }
 
-export default function PostGrid({ posts }: { posts: Post[] }) {
+interface PostGridProps {
+  posts: Post[];
+  /** Fires whenever a card is opened, in addition to the modal opening —
+   * lets a parent (e.g. the recent-searches filter) track view history
+   * without PostGrid needing to know anything about that feature. */
+  onPostOpen?: (post: Post) => void;
+}
+
+export default function PostGrid({ posts, onPostOpen }: PostGridProps) {
   const isMobile = useIsMobile();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -54,6 +62,11 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
   // index so the modal can reuse the exact same cover-gradient/avatar-color
   // derivation as the card it was opened from.
   const [selected, setSelected] = useState<GridItem | null>(null);
+
+  const openPost = (item: GridItem) => {
+    setSelected(item);
+    onPostOpen?.(item.post);
+  };
 
   // --- Row count follows the section's real available height -----------
   // Measured (not assumed) via ResizeObserver on the wrapper that actually
@@ -165,7 +178,7 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
                 height={CARD_HEIGHT}
                 gridIndex={gridIndex}
                 fullWidth
-                onOpen={() => setSelected({ post, gridIndex })}
+                onOpen={() => openPost({ post, gridIndex })}
               />
             ))}
           </div>
@@ -207,7 +220,7 @@ export default function PostGrid({ posts }: { posts: Post[] }) {
                   post={post}
                   height={CARD_HEIGHT}
                   gridIndex={gridIndex}
-                  onOpen={() => setSelected({ post, gridIndex })}
+                  onOpen={() => openPost({ post, gridIndex })}
                 />
               ))}
             </div>

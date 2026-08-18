@@ -60,6 +60,16 @@ export function getMemberColor(gridIndex: number, memberIndex: number): string {
   return MEMBER_COLORS[Math.floor(r * MEMBER_COLORS.length)];
 }
 
+/** Two-letter initials for a name, used by the logo chip and team avatars.
+ * "Nimbus Labs" -> "NL", "Chorus" -> "CH", so single-word names still read
+ * as a real mark instead of collapsing to one letter. */
+export function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 const DESKTOP_MIN_ASPECT = 1; // square
 const DESKTOP_MAX_ASPECT = 1.8; // wide
 const MOBILE_MIN_ASPECT = 0.68; // tall
