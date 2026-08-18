@@ -20,6 +20,8 @@ interface PostCardProps {
    * from an aspect ratio <= 1 (portrait/square) instead of a fixed height
    * deriving width like the desktop masonry does. */
   fullWidth?: boolean;
+  /** Opens the full detail view for this post (see PostDetailModal). */
+  onOpen?: () => void;
 }
 
 const MAX_TAGS = 2;
@@ -41,7 +43,13 @@ function RoleDots({ filled, total }: { filled: number; total: number }) {
   );
 }
 
-export default function PostCard({ post, height, gridIndex, fullWidth = false }: PostCardProps) {
+export default function PostCard({
+  post,
+  height,
+  gridIndex,
+  fullWidth = false,
+  onOpen,
+}: PostCardProps) {
   const visibleTags = post.tags.slice(0, MAX_TAGS);
   const extraTags = post.tags.length - visibleTags.length;
 
@@ -58,18 +66,29 @@ export default function PostCard({ post, height, gridIndex, fullWidth = false }:
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`View details for ${post.title}`}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen?.();
+        }
+      }}
       style={
         fullWidth
           ? { aspectRatio }
           : { height, width, minWidth: width, maxWidth: width }
       }
-      className={`group relative flex-shrink-0 overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl dark:ring-white/10 bg-gradient-to-br ${coverGradient} ${
+      className={`group relative flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:ring-white/10 bg-gradient-to-br ${coverGradient} ${
         fullWidth ? "w-full" : ""
       }`}
     >
-      {/* bookmark */}
+      {/* bookmark — stops propagation so it doesn't also open the modal */}
       <button
         aria-label="Bookmark"
+        onClick={(e) => e.stopPropagation()}
         className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 sm:right-3 sm:top-3 sm:h-8 sm:w-8"
       >
         <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -178,10 +197,19 @@ export default function PostCard({ post, height, gridIndex, fullWidth = false }:
 
         {/* actions */}
         <div className="flex items-center gap-1.5">
-          <button className="flex-1 rounded-full border border-white/25 bg-white/5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/15 sm:text-xs">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen?.();
+            }}
+            className="flex-1 rounded-full border border-white/25 bg-white/5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/15 sm:text-xs"
+          >
             Details
           </button>
-          <button className="flex-1 rounded-full bg-white py-1.5 text-[11px] font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:text-xs">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 rounded-full bg-white py-1.5 text-[11px] font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:text-xs"
+          >
             Apply →
           </button>
         </div>
