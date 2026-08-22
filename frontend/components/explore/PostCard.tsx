@@ -75,9 +75,14 @@ export default function PostCard({
       <div className="absolute inset-x-2.5 top-2.5 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
         <span
           aria-hidden
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/15 text-[11px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm sm:h-9 sm:w-9 sm:text-xs"
+          className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/15 text-[11px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm sm:h-9 sm:w-9 sm:text-xs"
         >
-          {logoInitials}
+          {post.coverImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.coverImageUrl} alt={post.companyName} className="h-full w-full object-cover" />
+          ) : (
+            logoInitials
+          )}
         </span>
         <span className="max-w-[55%] truncate rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm sm:text-[11px]">
           {post.category}

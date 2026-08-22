@@ -4,10 +4,6 @@ import { cacheGet, cacheSet, cacheDel } from "../../config/redis";
 
 export const userService = {
   async getById(id: string) {
-    const cacheKey = `user:${id}`;
-    const cached = await cacheGet(cacheKey);
-    if (cached) return cached;
-
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -16,20 +12,66 @@ export const userService = {
         email: true,
         avatarUrl: true,
         bio: true,
+        skills: true,
         createdAt: true,
+        ownedProjects: {
+          include: {
+            roles: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        collaborations: {
+          include: {
+            project: {
+              include: {
+                owner: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        savedRoles: {
+          include: {
+            role: {
+              include: {
+                project: true,
+              },
+            },
+          },
+        },
+        applications: {
+          include: {
+            role: {
+              include: {
+                project: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
     if (!user) throw ApiError.notFound("User not found");
 
-    await cacheSet(cacheKey, user, 300);
     return user;
   },
 
   async updateProfile(
     id: string,
-    data: { name?: string; bio?: string; avatarUrl?: string }
+    data: { name?: string; bio?: string; avatarUrl?: string; skills?: string[] }
   ) {
-    const user = await prisma.user.update({ where: { id }, data });
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        bio: true,
+        skills: true,
+        createdAt: true,
+      },
+    });
     await cacheDel(`user:${id}`);
     return user;
   },

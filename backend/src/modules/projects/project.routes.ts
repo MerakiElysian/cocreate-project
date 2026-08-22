@@ -10,11 +10,15 @@ import {
 
 const router = Router();
 
+// Public routes for Explore page
+router.get("/explore", projectController.explore);
+router.get("/:id", projectController.getById);
+
+// Authenticated routes
 router.use(authenticate);
 
 router.post("/", validate(createProjectSchema), projectController.create);
 router.get("/", projectController.listMine);
-router.get("/:id", projectController.getById);
 router.patch("/:id", validate(updateProjectSchema), projectController.update);
 router.delete("/:id", projectController.remove);
 

@@ -27,38 +27,48 @@ model User {
 }
 
 model Project {
-  id            String   @id @default(uuid())
+  id            String        @id @default(uuid())
   title         String
   description   String
-  coverImageUrl String?
+  companyName   String?
   category      String?
-  workType      String   @default("Remote")
-  tags          String[]
+  location      String        @default("Remote")
+  employment    String?
+  workType      String        @default("Remote")
+  extraMembers  Int           @default(0)
+  tags          String[]      @default([])
+  coverImageUrl String?
   ownerId       String
 
   owner         User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
   collaborators ProjectCollaborator[]
   roles         Role[]
 
-  status    ProjectStatus @default(ACTIVE)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  status        ProjectStatus         @default(RECRUITING)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 }
 
 model Role {
-  id           String @id @default(uuid())
+  id           String        @id @default(uuid())
   projectId    String
   title        String
-  contractType String
-  compensation String
-  totalSpots   Int    @default(1)
-  filledSpots  Int    @default(0)
+  compType     String?       // e.g. "Equity", "Revenue-share", "Hourly", "Paid"
+  compValue    String?       // e.g. "1.5%", "3%", "$50/hr"
+  employment   String?       // e.g. "Full-time", "Part-time", "Contract"
+  contractType String?       // Legacy / alternative alias
+  compensation String?       // Legacy / alternative alias
+  totalSpots   Int           @default(1)
+  filledSpots  Int           @default(0)
+  description  String?
+  requirements String[]      @default([])
 
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   applications Application[]
   savedBy      SavedRole[]
 
-  createdAt DateTime @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Application {
@@ -71,22 +81,22 @@ model Application {
   counterStart DateTime?
   status       ApplicationStatus @default(PENDING)
 
-  role      Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  role         Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  applicant    User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@unique([roleId, applicantId])
 }
 
 model SavedRole {
-  id     String @id @default(uuid())
-  userId String
-  roleId String
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -97,26 +107,31 @@ model ProjectCollaborator {
   id        String           @id @default(uuid())
   projectId String
   userId    String
+  title     String?          // e.g. "Co-founder, Product", "Lead Frontend", "Designer"
   role      CollaboratorRole @default(EDITOR)
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
 }
 
 model RefreshToken {
-  id     String @id @default(uuid())
-  token  String @unique
-  userId String
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
 
 enum ProjectStatus {
+  RECRUITING
+  HIRING
+  IN_PROGRESS
+  CLOSED
   ACTIVE
   ARCHIVED
   COMPLETED

@@ -8,7 +8,11 @@ const dockButtons = [
   { icon: MessageCircle, label: "Conversations" },
 ];
 
-export default function BottomDock() {
+interface BottomDockProps {
+  onAddPostClick?: () => void;
+}
+
+export default function BottomDock({ onAddPostClick }: BottomDockProps) {
   return (
     <div
       className="fixed inset-x-0 z-50 flex justify-center px-4"
@@ -26,8 +30,9 @@ export default function BottomDock() {
         ))}
 
         <button
+          onClick={onAddPostClick}
           aria-label="Add post"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 sm:h-12 sm:w-12"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-blue-700 active:scale-95 sm:h-12 sm:w-12"
         >
           <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>

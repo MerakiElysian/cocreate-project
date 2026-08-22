@@ -168,8 +168,13 @@ export default function PostDetailModal({ post, gridIndex, onClose }: PostDetail
         {/* banner */}
         <div className={`relative flex-shrink-0 bg-gradient-to-br ${coverGradient} px-5 pb-5 pt-5 sm:px-7 sm:pt-6`}>
           <div className="flex items-start justify-between">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 text-xs font-bold text-white ring-1 ring-white/25 backdrop-blur-sm">
-              {getInitials(post.companyName)}
+            <span className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/15 text-xs font-bold text-white ring-1 ring-white/25 backdrop-blur-sm">
+              {post.coverImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.coverImageUrl} alt={post.companyName} className="h-full w-full object-cover" />
+              ) : (
+                getInitials(post.companyName)
+              )}
             </span>
             <div className="flex items-center gap-2">
               <button

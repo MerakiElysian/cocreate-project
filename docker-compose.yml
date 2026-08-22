@@ -1,92 +1,3 @@
-# version: "3.9"
-
-# services:
-#   postgres:
-#     image: postgres:16-alpine
-#     container_name: cocreate-postgres
-#     restart: unless-stopped
-#     environment:
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#       POSTGRES_DB: cocreate
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - postgres_data:/var/lib/postgresql/data
-
-#   redis:
-#     image: redis:7-alpine
-#     container_name: cocreate-redis
-#     restart: unless-stopped
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis_data:/data
-
-#   elasticsearch:
-#     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
-#     container_name: cocreate-elasticsearch
-#     restart: unless-stopped
-#     environment:
-#       - discovery.type=single-node
-#       - xpack.security.enabled=false
-#       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-#     ports:
-#       - "9200:9200"
-#     volumes:
-#       - es_data:/usr/share/elasticsearch/data
-#     healthcheck:
-#       test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 10
-#       start_period: 30s
-
-#   backend:
-#     build: ./backend
-#     container_name: cocreate-backend
-#     restart: unless-stopped
-#     depends_on:
-#       postgres:
-#         condition: service_started
-#       redis:
-#         condition: service_started
-#       elasticsearch:
-#         condition: service_healthy
-#     environment:
-#       NODE_ENV: production
-#       PORT: 5000
-#       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cocreate
-#       REDIS_URL: redis://redis:6379
-#       ELASTICSEARCH_URL: http://elasticsearch:9200
-#       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_access}
-#       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh}
-#       CORS_ORIGIN: http://localhost:3000
-#       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
-#       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
-#       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
-#     ports:
-#       - "5000:5000"
-
-#   frontend:
-#     build:
-#       context: ./frontend
-#       args:
-#         NEXT_PUBLIC_API_URL: http://localhost:5000
-#         NEXT_PUBLIC_SOCKET_URL: http://localhost:5000
-#     container_name: cocreate-frontend
-#     restart: unless-stopped
-#     depends_on:
-#       - backend
-#     ports:
-#       - "3000:3000"
-
-# volumes:
-#   postgres_data:
-#   redis_data:
-#   es_data:
-version: "3.9"
-
 services:
   redis:
     image: redis:7-alpine
@@ -117,7 +28,9 @@ services:
       start_period: 30s
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: cocreate-backend
     restart: unless-stopped
     depends_on:
@@ -132,21 +45,19 @@ services:
       # Neon PostgreSQL
       DATABASE_URL: postgresql://neondb_owner:npg_oDMR5xKv7phg@ep-cool-shadow-az5d2n75.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
       DATABASE_URL_UNPOOLED: postgresql://neondb_owner:npg_oDMR5xKv7phg@ep-cool-shadow-az5d2n75.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-      # Docker services
+
+      # Redis & Elasticsearch
       REDIS_URL: redis://redis:6379
       ELASTICSEARCH_URL: http://elasticsearch:9200
 
       # Authentication
       JWT_ACCESS_SECRET: Cocreate867SecretKey99292
       JWT_REFRESH_SECRET: Cocreate99292SecretKey867
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
 
-      # Frontend
+      # Frontend CORS
       CORS_ORIGIN: http://localhost:3000
-
-      # # Cloudinary
-      # CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
-      # CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
-      # CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
 
     ports:
       - "5000:5000"
@@ -154,6 +65,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://localhost:5000
         NEXT_PUBLIC_SOCKET_URL: http://localhost:5000
@@ -166,4 +78,4 @@ services:
 
 volumes:
   redis_data:
-  es_data:
+  es_data:

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -26,6 +29,13 @@ const features = [
 ];
 
 export default function Hero() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    setIsLoggedIn(!!token);
+  }, []);
+
   return (
     <main className="container mx-auto px-6 py-16">
       <div className="mx-auto max-w-4xl text-center">
@@ -55,16 +65,16 @@ export default function Hero() {
 
         <div className="mb-16 flex flex-col justify-center gap-4 sm:flex-row">
           <Link
-            href="/explore"
+            href={isLoggedIn ? "/explore" : "/login"}
             className="transform rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-blue-700 hover:shadow-xl"
           >
             Start Creating Now
           </Link>
           <Link
-            href="/demo"
+            href={isLoggedIn ? "/profile" : "/signup"}
             className="rounded-full border-2 border-gray-300 px-8 py-4 text-lg font-semibold text-gray-700 transition-all duration-200 hover:border-blue-600 hover:text-blue-600"
           >
-            Watch Demo
+            {isLoggedIn ? "My Profile" : "Create Free Account"}
           </Link>
         </div>
 

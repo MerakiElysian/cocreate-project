@@ -1,15 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Bungee } from "next/font/google";
-import { Search, Sun, Moon } from "lucide-react";
+import { Search, Sun, Moon, User as UserIcon } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 
 const bungee = Bungee({ subsets: ["latin"], weight: "400" });
 
 export default function ExploreNavbar() {
   const { theme, toggleTheme } = useTheme();
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatarUrl?: string } | null>(null);
+
+  useEffect(() => {
+    const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch {
+        setCurrentUser(null);
+      }
+    }
+  }, []);
+
+  const initials = currentUser?.name
+    ? currentUser.name
+        .split(/\s+/)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "U";
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/80 px-4 py-2.5 backdrop-blur transition-colors sm:px-6 sm:py-3 lg:px-12 dark:border-gray-800 dark:bg-gray-950/80">
@@ -54,12 +76,15 @@ export default function ExploreNavbar() {
           <Link
             href="/profile"
             aria-label="Your profile"
-            // The gradient stays as the base layer, so if the image is
-            // missing, still loading, or has transparent edges, there's
-            // always a filled circle behind it instead of a broken-image box.
-            className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-sm font-bold text-white"
+            className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-sm font-bold text-white shadow-md ring-2 ring-blue-500/20"
           >
-            <Image src="/user.jpg" alt="" fill sizes="40px" className="object-cover" />
+            {currentUser?.avatarUrl ? (
+              <Image src={currentUser.avatarUrl} alt={currentUser.name || "Profile"} fill className="object-cover" />
+            ) : currentUser ? (
+              <span>{initials}</span>
+            ) : (
+              <UserIcon className="h-5 w-5 text-white" />
+            )}
           </Link>
         </div>
       </div>

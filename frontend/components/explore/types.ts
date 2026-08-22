@@ -31,4 +31,5 @@ export interface Post {
   extraMembers?: number;
   location: string;
   employment: string;
+  coverImageUrl?: string;
 }

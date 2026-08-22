@@ -7,7 +7,7 @@ import { useDispatch } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Eye, EyeOff, Loader2 } from "lucide-react";
 import { signupSchema, SignupInput } from "@/schemas/auth.schema";
 import { loginStart, loginSuccess, loginFailure } from "@/store/slices/authSlice";
 
@@ -15,6 +15,7 @@ export default function SignupPage() {
   const router = useRouter();
   const dispatch = useDispatch();
   const [serverError, setServerError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -26,18 +27,41 @@ export default function SignupPage() {
     setServerError("");
     dispatch(loginStart());
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${apiUrl}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const json = await res.json();
+
+      const json = await res.json().catch(() => ({}));
+
       if (!res.ok || !json.success) {
-        throw new Error(json.message || "Signup failed");
+        let errorMsg = json.message || "Signup failed";
+        if (json.details?.fieldErrors) {
+          const firstField = Object.keys(json.details.fieldErrors)[0];
+          if (firstField && json.details.fieldErrors[firstField]?.length > 0) {
+            errorMsg = json.details.fieldErrors[firstField][0];
+          }
+        }
+        throw new Error(errorMsg);
       }
+
       dispatch(loginSuccess({ user: json.data.user, accessToken: json.data.accessToken }));
-      localStorage.setItem("refreshToken", json.data.refreshToken);
-      router.push("/");
+
+      if (typeof window !== "undefined") {
+        if (json.data.refreshToken) {
+          localStorage.setItem("refreshToken", json.data.refreshToken);
+        }
+        if (json.data.accessToken) {
+          localStorage.setItem("accessToken", json.data.accessToken);
+        }
+        if (json.data.user) {
+          localStorage.setItem("user", JSON.stringify(json.data.user));
+        }
+      }
+
+      router.push("/explore");
     } catch (err) {
       dispatch(loginFailure());
       setServerError(err instanceof Error ? err.message : "Something went wrong");
@@ -78,7 +102,7 @@ export default function SignupPage() {
         </p>
 
         {serverError && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
             {serverError}
           </div>
         )}
@@ -88,6 +112,7 @@ export default function SignupPage() {
             <label className="mb-1 block text-sm font-medium text-gray-700">Full name</label>
             <input
               type="text"
+              autoComplete="name"
               {...register("name")}
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
               placeholder="Jane Doe"
@@ -99,6 +124,7 @@ export default function SignupPage() {
             <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
+              autoComplete="email"
               {...register("email")}
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
               placeholder="you@example.com"
@@ -108,12 +134,23 @@ export default function SignupPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              {...register("password")}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                {...register("password")}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm text-gray-900 transition-colors focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
             <p className="mt-1 text-xs text-gray-400">
               At least 8 characters, one uppercase letter, one number
@@ -123,12 +160,19 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-full bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Creating account..." : "Sign Up"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Creating account...</span>
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
       </div>
     </div>
   );
-}
+}
