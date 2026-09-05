@@ -9,7 +9,7 @@ export const searchController = {
       const q = (req.query.q as string) || "";
       if (!q.trim()) throw ApiError.badRequest("Query parameter 'q' is required");
       const page = parseInt((req.query.page as string) || "1", 10);
-      const limit = parseInt((req.query.limit as string) || "20", 10);
+      const limit = Math.min(parseInt((req.query.limit as string) || "20", 10), 100);
       const result = await searchService.searchProjects(q, page, limit);
       return sendSuccess(res, result);
     } catch (err) {
@@ -22,7 +22,7 @@ export const searchController = {
       const q = (req.query.q as string) || "";
       if (!q.trim()) throw ApiError.badRequest("Query parameter 'q' is required");
       const page = parseInt((req.query.page as string) || "1", 10);
-      const limit = parseInt((req.query.limit as string) || "20", 10);
+      const limit = Math.min(parseInt((req.query.limit as string) || "20", 10), 100);
       const result = await searchService.searchUsers(q, page, limit);
       return sendSuccess(res, result);
     } catch (err) {

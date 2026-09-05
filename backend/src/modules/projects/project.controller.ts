@@ -30,7 +30,7 @@ export const projectController = {
       const category = req.query.category as string;
       const role = req.query.role as string;
       const page = parseInt((req.query.page as string) || "1", 10);
-      const limit = parseInt((req.query.limit as string) || "20", 10);
+      const limit = Math.min(parseInt((req.query.limit as string) || "20", 10), 100);
 
       const result = await projectService.listExplore({
         filter,
@@ -49,7 +49,7 @@ export const projectController = {
     try {
       if (!req.user) throw ApiError.unauthorized();
       const page = parseInt((req.query.page as string) || "1", 10);
-      const limit = parseInt((req.query.limit as string) || "20", 10);
+      const limit = Math.min(parseInt((req.query.limit as string) || "20", 10), 100);
       const result = await projectService.listByUser(req.user.userId, page, limit);
       return sendSuccess(res, result);
     } catch (err) {

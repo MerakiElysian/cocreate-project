@@ -37,7 +37,7 @@ export const userController = {
   async list(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const page = parseInt((req.query.page as string) || "1", 10);
-      const limit = parseInt((req.query.limit as string) || "20", 10);
+      const limit = Math.min(parseInt((req.query.limit as string) || "20", 10), 100);
       const result = await userService.listUsers(page, limit);
       return sendSuccess(res, result);
     } catch (err) {
