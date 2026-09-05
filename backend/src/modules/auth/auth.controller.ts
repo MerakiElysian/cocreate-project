@@ -19,7 +19,7 @@ export const authController = {
     try {
       const result = await authService.register(req.body);
       setRefreshTokenCookie(res, result.refreshToken);
-      const { refreshToken, ...data } = result;
+      const data = { user: result.user, accessToken: result.accessToken };
       return sendSuccess(res, data, "Account created successfully", 201);
     } catch (err) {
       next(err);
@@ -30,7 +30,7 @@ export const authController = {
     try {
       const result = await authService.login(req.body);
       setRefreshTokenCookie(res, result.refreshToken);
-      const { refreshToken, ...data } = result;
+      const data = { user: result.user, accessToken: result.accessToken };
       return sendSuccess(res, data, "Logged in successfully");
     } catch (err) {
       next(err);
@@ -43,7 +43,7 @@ export const authController = {
       if (!token) throw ApiError.unauthorized("Refresh token missing");
       const result = await authService.refresh(token);
       setRefreshTokenCookie(res, result.refreshToken);
-      const { refreshToken, ...data } = result;
+      const data = { user: result.user, accessToken: result.accessToken };
       return sendSuccess(res, data, "Token refreshed successfully");
     } catch (err) {
       next(err);
