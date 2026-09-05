@@ -30,13 +30,13 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Login failed");
       }
       dispatch(loginSuccess({ user: json.data.user, accessToken: json.data.accessToken }));
-      localStorage.setItem("refreshToken", json.data.refreshToken);
       router.push("/explore");
     } catch (err) {
       dispatch(loginFailure());

@@ -30,13 +30,13 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Signup failed");
       }
       dispatch(loginSuccess({ user: json.data.user, accessToken: json.data.accessToken }));
-      localStorage.setItem("refreshToken", json.data.refreshToken);
       router.push("/");
     } catch (err) {
       dispatch(loginFailure());
