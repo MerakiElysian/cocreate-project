@@ -89,4 +89,17 @@ export const projectController = {
       next(err);
     }
   },
+
+  async getMessages(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) throw ApiError.unauthorized();
+      const messages = await projectService.getMessages(
+        req.params.id,
+        req.user.userId
+      );
+      return sendSuccess(res, messages);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

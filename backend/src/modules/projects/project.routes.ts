@@ -25,4 +25,6 @@ router.post(
 );
 router.delete("/:id/collaborators/:userId", projectController.removeCollaborator);
 
+router.get("/:id/messages", projectController.getMessages);
+
 export default router;
