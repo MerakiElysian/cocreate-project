@@ -1,6 +1,7 @@
 import { prisma } from "../../config/db";
 import { ApiError } from "../../utils/apiError";
 import { cacheGet, cacheSet, cacheDel } from "../../config/redis";
+import { UpdateProfileInput } from "./user.validation";
 
 export const userService = {
   async getById(id: string) {
@@ -25,11 +26,20 @@ export const userService = {
     return user;
   },
 
-  async updateProfile(
-    id: string,
-    data: { name?: string; bio?: string; avatarUrl?: string }
-  ) {
-    const user = await prisma.user.update({ where: { id }, data });
+  async updateProfile(id: string, data: UpdateProfileInput) {
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
     await cacheDel(`user:${id}`);
     return user;
   },
