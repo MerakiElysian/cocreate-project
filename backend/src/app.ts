@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import { env } from "./config/env";
 import { globalLimiter } from "./middlewares/rateLimiter.middleware";
 import { notFoundHandler, errorHandler } from "./middlewares/error.middleware";
@@ -25,6 +26,7 @@ export function createApp(): Application {
       credentials: true,
     })
   );
+  app.use(cookieParser());
   app.use(compression());
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));

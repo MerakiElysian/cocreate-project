@@ -29,6 +29,7 @@ export default function SignupPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data),
       });
       const json = await res.json();
@@ -36,7 +37,6 @@ export default function SignupPage() {
         throw new Error(json.message || "Signup failed");
       }
       dispatch(loginSuccess({ user: json.data.user, accessToken: json.data.accessToken }));
-      localStorage.setItem("refreshToken", json.data.refreshToken);
       router.push("/");
     } catch (err) {
       dispatch(loginFailure());

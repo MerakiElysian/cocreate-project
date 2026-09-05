@@ -29,6 +29,7 @@ export default function LoginPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data),
       });
       const json = await res.json();
@@ -36,7 +37,6 @@ export default function LoginPage() {
         throw new Error(json.message || "Login failed");
       }
       dispatch(loginSuccess({ user: json.data.user, accessToken: json.data.accessToken }));
-      localStorage.setItem("refreshToken", json.data.refreshToken);
       router.push("/explore");
     } catch (err) {
       dispatch(loginFailure());
