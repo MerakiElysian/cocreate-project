@@ -10,6 +10,10 @@ jobs:
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cocreate_test
+      JWT_ACCESS_SECRET: test_jwt_access_secret_key_for_ci_12345
+      JWT_REFRESH_SECRET: test_jwt_refresh_secret_key_for_ci_12345
 
     steps:
       - name: Checkout code
