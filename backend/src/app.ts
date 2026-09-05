@@ -10,6 +10,8 @@ import { notFoundHandler, errorHandler } from "./middlewares/error.middleware";
 import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/users/user.routes";
 import projectRoutes from "./modules/projects/project.routes";
+import roleRoutes from "./modules/roles/role.routes";
+import applicationRoutes from "./modules/applications/application.routes";
 import searchRoutes from "./modules/search/search.routes";
 import uploadRoutes from "./modules/uploads/upload.routes";
 
@@ -40,6 +42,8 @@ export function createApp(): Application {
   app.use("/api/auth", authRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/projects", projectRoutes);
+  app.use("/api/roles", roleRoutes);
+  app.use("/api/applications", applicationRoutes);
   app.use("/api/search", searchRoutes);
   app.use("/api/uploads", uploadRoutes);
 

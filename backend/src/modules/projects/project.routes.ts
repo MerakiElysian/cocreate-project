@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { projectController } from "./project.controller";
+import { roleController } from "../roles/role.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 import {
@@ -7,6 +8,7 @@ import {
   updateProjectSchema,
   addCollaboratorSchema,
 } from "./project.validation";
+import { createRoleSchema } from "../roles/role.validation";
 
 const router = Router();
 
@@ -26,5 +28,8 @@ router.post(
 router.delete("/:id/collaborators/:userId", projectController.removeCollaborator);
 
 router.get("/:id/messages", projectController.getMessages);
+
+router.post("/:id/roles", validate(createRoleSchema), roleController.createRole);
+router.get("/:id/roles", roleController.getRolesByProject);
 
 export default router;
