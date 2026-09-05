@@ -134,4 +134,25 @@ export const projectService = {
       where: { projectId_userId: { projectId, userId } },
     });
   },
+
+  async getMessages(projectId: string, userId: string) {
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [{ ownerId: userId }, { collaborators: { some: { userId } } }],
+      },
+    });
+    if (!project) {
+      throw ApiError.forbidden("Not authorized to access project messages");
+    }
+
+    return prisma.chatMessage.findMany({
+      where: { projectId },
+      take: 50,
+      orderBy: { createdAt: "asc" },
+      include: {
+        sender: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+  },
 };
