@@ -12,6 +12,8 @@ import userRoutes from "./modules/users/user.routes";
 import projectRoutes from "./modules/projects/project.routes";
 import searchRoutes from "./modules/search/search.routes";
 import uploadRoutes from "./modules/uploads/upload.routes";
+import roleRoutes from "./modules/roles/role.routes";
+import applicationRoutes from "./modules/applications/application.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -42,6 +44,8 @@ export function createApp(): Application {
   app.use("/api/projects", projectRoutes);
   app.use("/api/search", searchRoutes);
   app.use("/api/uploads", uploadRoutes);
+  app.use("/api/roles", roleRoutes);
+  app.use("/api/applications", applicationRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

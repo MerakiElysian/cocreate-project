@@ -4,16 +4,65 @@ import { esClient, PROJECT_INDEX } from "../../config/elasticsearch";
 import { cacheDel } from "../../config/redis";
 import { logger } from "../../utils/logger";
 
+interface RoleInput {
+  title: string;
+  compType?: string;
+  compValue?: string;
+  employment?: string;
+  contractType?: string;
+  compensation?: string;
+  totalSpots?: number;
+  filledSpots?: number;
+  description?: string;
+  requirements?: string[];
+}
+
 interface CreateProjectInput {
   title: string;
   description: string;
+  companyName?: string;
+  category?: string;
+  location?: string;
+  employment?: string;
+  workType?: string;
+  extraMembers?: number;
+  tags?: string[];
   coverImageUrl?: string;
+  roles?: RoleInput[];
 }
 
 export const projectService = {
   async create(ownerId: string, input: CreateProjectInput) {
+    const { roles, ...projectData } = input;
     const project = await prisma.project.create({
-      data: { ...input, ownerId },
+      data: {
+        ...projectData,
+        ownerId,
+        roles:
+          roles && roles.length > 0
+            ? {
+                create: roles.map((r) => ({
+                  title: r.title,
+                  compType: r.compType,
+                  compValue: r.compValue,
+                  employment: r.employment,
+                  contractType: r.contractType,
+                  compensation: r.compensation,
+                  totalSpots: r.totalSpots ?? 1,
+                  filledSpots: r.filledSpots ?? 0,
+                  description: r.description,
+                  requirements: r.requirements ?? [],
+                })),
+              }
+            : undefined,
+      },
+      include: {
+        owner: { select: { id: true, name: true, avatarUrl: true } },
+        roles: true,
+        collaborators: {
+          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+        },
+      },
     });
 
     // Index in Elasticsearch for search (best-effort, non-blocking on failure)
@@ -39,6 +88,7 @@ export const projectService = {
       where: { id },
       include: {
         owner: { select: { id: true, name: true, avatarUrl: true } },
+        roles: true,
         collaborators: {
           include: { user: { select: { id: true, name: true, avatarUrl: true } } },
         },
@@ -46,6 +96,56 @@ export const projectService = {
     });
     if (!project) throw ApiError.notFound("Project not found");
     return project;
+  },
+
+  async listExplore(params?: {
+    filter?: string;
+    category?: string;
+    role?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (params?.category) {
+      where.category = params.category;
+    }
+    if (params?.role) {
+      where.roles = {
+        some: {
+          title: { contains: params.role, mode: "insensitive" },
+        },
+      };
+    }
+
+    let orderBy: any = { createdAt: "desc" };
+    if (params?.filter === "trending") {
+      orderBy = { updatedAt: "desc" };
+    } else if (params?.filter === "new") {
+      orderBy = { createdAt: "desc" };
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          owner: { select: { id: true, name: true, avatarUrl: true } },
+          roles: true,
+          collaborators: {
+            include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+          },
+        },
+      }),
+      prisma.project.count({ where }),
+    ]);
+
+    return { items, total, page, limit };
   },
 
   async listByUser(userId: string, page = 1, limit = 20) {
@@ -58,6 +158,13 @@ export const projectService = {
         skip,
         take: limit,
         orderBy: { updatedAt: "desc" },
+        include: {
+          owner: { select: { id: true, name: true, avatarUrl: true } },
+          roles: true,
+          collaborators: {
+            include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+          },
+        },
       }),
       prisma.project.count({
         where: {

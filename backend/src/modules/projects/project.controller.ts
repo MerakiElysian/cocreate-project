@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { projectService } from "./project.service";
 import { sendSuccess } from "../../utils/apiResponse";
 import { AuthRequest } from "../../middlewares/auth.middleware";
@@ -19,6 +19,27 @@ export const projectController = {
     try {
       const project = await projectService.getById(req.params.id);
       return sendSuccess(res, project);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listExplore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const filter = req.query.filter as string;
+      const category = req.query.category as string;
+      const role = req.query.role as string;
+      const page = parseInt((req.query.page as string) || "1", 10);
+      const limit = parseInt((req.query.limit as string) || "20", 10);
+
+      const result = await projectService.listExplore({
+        filter,
+        category,
+        role,
+        page,
+        limit,
+      });
+      return sendSuccess(res, result);
     } catch (err) {
       next(err);
     }

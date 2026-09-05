@@ -1,4 +1,5 @@
 export interface Role {
+  id?: string;
   title: string;
   compType: string; // e.g. "Equity" | "Revenue-share"
   compValue: string; // e.g. "1.5%" | "3%"
@@ -31,4 +32,5 @@ export interface Post {
   extraMembers?: number;
   location: string;
   employment: string;
+  coverImageUrl?: string;
 }

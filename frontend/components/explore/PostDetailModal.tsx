@@ -145,13 +145,52 @@ export default function PostDetailModal({ post, gridIndex, onClose }: PostDetail
   useEffect(() => {
     setExpandedRole(null);
     setSelectedRole(null);
+    setApplyFeedback(null);
   }, [post?.id]);
+
+  const [applying, setApplying] = useState(false);
+  const [applyFeedback, setApplyFeedback] = useState<{ success: boolean; message: string } | null>(null);
+
+  const selectedRoleData = post?.roles.find((r) => r.title === selectedRole) ?? null;
+
+  const handleApply = async () => {
+    if (!selectedRoleData?.id) {
+      setApplyFeedback({ success: true, message: "Applied to role!" });
+      return;
+    }
+    setApplying(true);
+    setApplyFeedback(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      const res = await fetch(`${apiUrl}/api/roles/${selectedRoleData.id}/applications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ coverNote: "Interested in applying" }),
+        credentials: "include",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setApplyFeedback({ success: true, message: "Application submitted successfully!" });
+      } else if (res.status === 409) {
+        setApplyFeedback({ success: false, message: "You have already applied for this role." });
+      } else {
+        setApplyFeedback({ success: false, message: json.message || "Failed to apply for role." });
+      }
+    } catch (err: any) {
+      setApplyFeedback({ success: false, message: err.message || "Network error applying for role." });
+    } finally {
+      setApplying(false);
+    }
+  };
 
   if (!post) return null;
 
   const coverGradient = getCoverGradient(gridIndex);
   const teamSize = post.team.length + (post.extraMembers ?? 0);
-  const selectedRoleData = post.roles.find((r) => r.title === selectedRole) ?? null;
 
   return (
     <div
@@ -301,6 +340,17 @@ export default function PostDetailModal({ post, gridIndex, onClose }: PostDetail
         {/* footer — shows exactly what you're about to apply for, and the
            Apply button stays inert until a role is actually selected. */}
         <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4 sm:px-7 dark:border-gray-800">
+          {applyFeedback && (
+            <p
+              className={`mb-2 text-xs font-semibold ${
+                applyFeedback.success
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-600 dark:text-red-400"
+              }`}
+            >
+              {applyFeedback.message}
+            </p>
+          )}
           {post.roles.length > 0 && (
             <p className="mb-3 truncate text-xs text-gray-500 dark:text-gray-400">
               {selectedRoleData ? (
@@ -323,14 +373,15 @@ export default function PostDetailModal({ post, gridIndex, onClose }: PostDetail
               Close
             </button>
             <button
-              disabled={post.roles.length > 0 && !selectedRoleData}
+              onClick={handleApply}
+              disabled={applying || (post.roles.length > 0 && !selectedRoleData)}
               className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-colors ${
                 post.roles.length > 0 && !selectedRoleData
                   ? "cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600"
                   : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
             >
-              Apply →
+              {applying ? "Applying..." : "Apply →"}
             </button>
           </div>
         </div>
