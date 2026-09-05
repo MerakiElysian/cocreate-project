@@ -45,16 +45,17 @@ export const userService = {
   },
 
   async listUsers(page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (page - 1) * safeLimit;
     const [items, total] = await Promise.all([
       prisma.user.findMany({
         skip,
-        take: limit,
+        take: safeLimit,
         select: { id: true, name: true, email: true, avatarUrl: true },
         orderBy: { createdAt: "desc" },
       }),
       prisma.user.count(),
     ]);
-    return { items, total, page, limit };
+    return { items, total, page, limit: safeLimit };
   },
 };

@@ -2,11 +2,12 @@ import { esClient, PROJECT_INDEX, USER_INDEX } from "../../config/elasticsearch"
 
 export const searchService = {
   async searchProjects(query: string, page = 1, limit = 20) {
-    const from = (page - 1) * limit;
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const from = (page - 1) * safeLimit;
     const result = await esClient.search({
       index: PROJECT_INDEX,
       from,
-      size: limit,
+      size: safeLimit,
       query: {
         multi_match: {
           query,
@@ -22,15 +23,18 @@ export const searchService = {
           ? result.hits.total
           : result.hits.total?.value ?? 0,
       items: result.hits.hits.map((hit) => ({ id: hit._id, ...(hit._source as object) })),
+      page,
+      limit: safeLimit,
     };
   },
 
   async searchUsers(query: string, page = 1, limit = 20) {
-    const from = (page - 1) * limit;
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const from = (page - 1) * safeLimit;
     const result = await esClient.search({
       index: USER_INDEX,
       from,
-      size: limit,
+      size: safeLimit,
       query: {
         multi_match: {
           query,
@@ -46,6 +50,8 @@ export const searchService = {
           ? result.hits.total
           : result.hits.total?.value ?? 0,
       items: result.hits.hits.map((hit) => ({ id: hit._id, ...(hit._source as object) })),
+      page,
+      limit: safeLimit,
     };
   },
 };

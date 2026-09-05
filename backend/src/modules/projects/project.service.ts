@@ -49,14 +49,15 @@ export const projectService = {
   },
 
   async listByUser(userId: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (page - 1) * safeLimit;
     const [items, total] = await Promise.all([
       prisma.project.findMany({
         where: {
           OR: [{ ownerId: userId }, { collaborators: { some: { userId } } }],
         },
         skip,
-        take: limit,
+        take: safeLimit,
         orderBy: { updatedAt: "desc" },
       }),
       prisma.project.count({
@@ -65,14 +66,22 @@ export const projectService = {
         },
       }),
     ]);
-    return { items, total, page, limit };
+    return { items, total, page, limit: safeLimit };
   },
 
-  async update(id: string, ownerId: string, data: Record<string, unknown>) {
-    const project = await prisma.project.findUnique({ where: { id } });
+  async update(id: string, userId: string, data: Record<string, unknown>) {
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: { collaborators: { where: { userId } } },
+    });
     if (!project) throw ApiError.notFound("Project not found");
-    if (project.ownerId !== ownerId) {
-      throw ApiError.forbidden("Only the owner can update this project");
+
+    const isOwner = project.ownerId === userId;
+    const userCollab = project.collaborators[0];
+    const isEditor = userCollab?.role === "EDITOR" || userCollab?.role === "OWNER";
+
+    if (!isOwner && !isEditor) {
+      throw ApiError.forbidden("Only project owners and editors can update this project");
     }
 
     const updated = await prisma.project.update({ where: { id }, data });
@@ -93,7 +102,7 @@ export const projectService = {
     const project = await prisma.project.findUnique({ where: { id } });
     if (!project) throw ApiError.notFound("Project not found");
     if (project.ownerId !== ownerId) {
-      throw ApiError.forbidden("Only the owner can delete this project");
+      throw ApiError.forbidden("Only the project owner can delete this project");
     }
 
     await prisma.projectCollaborator.deleteMany({ where: { projectId: id } });
@@ -113,7 +122,7 @@ export const projectService = {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw ApiError.notFound("Project not found");
     if (project.ownerId !== ownerId) {
-      throw ApiError.forbidden("Only the owner can add collaborators");
+      throw ApiError.forbidden("Only the project owner can add collaborators");
     }
 
     return prisma.projectCollaborator.upsert({
@@ -127,7 +136,7 @@ export const projectService = {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw ApiError.notFound("Project not found");
     if (project.ownerId !== ownerId) {
-      throw ApiError.forbidden("Only the owner can remove collaborators");
+      throw ApiError.forbidden("Only the project owner can remove collaborators");
     }
 
     await prisma.projectCollaborator.delete({
